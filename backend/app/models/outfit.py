@@ -1,4 +1,5 @@
-from sqlalchemy import Column, UUID, Text, ARRAY, JSONB, TIMESTAMP
+from sqlalchemy import Column, UUID, Text, ARRAY, TIMESTAMP
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 import uuid
 from datetime import datetime

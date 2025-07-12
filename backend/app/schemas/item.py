@@ -1,6 +1,5 @@
 from pydantic import BaseModel, UUID4
 from typing import List, Optional
-from pgvector.sqlalchemy import Vector
 
 class ItemBase(BaseModel):
     name: Optional[str] = None
@@ -20,5 +19,6 @@ class Item(ItemBase):
     user_id: UUID4
     created_at: str
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }

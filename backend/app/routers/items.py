@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -5,7 +6,6 @@ from app.dependencies import get_db, get_current_user
 from app.models.item import Item
 from app.schemas.item import ItemCreate, Item
 from app.services.gemini_service import GeminiService
-from app.services.recommendation_service import RecommendationService
 from app.config import settings
 import httpx
 from typing import List
@@ -62,22 +62,10 @@ async def create_item(
         for_sale=False
     )
     
-    db_item = Item(**item_data.dict(), user_id=user_id, embedding=[0.0] * 1536)  # Temporary embedding
+    db_item = Item(**item_data.dict(), user_id=user_id)
     db.add(db_item)
     await db.commit()
     await db.refresh(db_item)
-    
-    # Update item embedding
-    recommendation_service = RecommendationService(db)
-    await recommendation_service.update_item_embedding(
-        db_item.id,
-        {
-            "type": db_item.type,
-            "color": db_item.color,
-            "style": analysis.get("style", "casual"),
-            "season": db_item.season
-        }
-    )
     
     return db_item
 

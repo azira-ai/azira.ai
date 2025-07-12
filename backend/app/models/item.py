@@ -1,5 +1,5 @@
+
 from sqlalchemy import Column, UUID, Text, ARRAY, Boolean, Numeric, TIMESTAMP
-from pgvector.sqlalchemy import Vector  # Use pgvector's Vector type
 from sqlalchemy.ext.declarative import declarative_base
 import uuid
 from datetime import datetime
@@ -16,8 +16,7 @@ class Item(Base):
     color = Column(Text)
     state = Column(Text)
     season = Column(ARRAY(Text))
-    embedding = Column(Vector(1536))  # Updated to use pgvector's Vector
     img_url = Column(Text, nullable=False)
     for_sale = Column(Boolean, default=False)
-    price = Column(Numeric, check_constraint="price >= 0")
+    price = Column(Numeric)  # Constraint defined in SQL schema
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.utcnow)
