@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import items, outfits
+from app.routers import items, outfits, upload_router
 from app.database.database import engine
 from app.models import item, outfit
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_db
 import asyncio
+
 
 app = FastAPI(title="Fashion AI App", version="1.0.0")
 
@@ -21,6 +22,7 @@ app.add_middleware(
 # Include routers
 app.include_router(items.router, prefix="/items", tags=["items"])
 app.include_router(outfits.router, prefix="/outfits", tags=["outfits"])
+app.include_router(upload_router.router, prefix="/media", tags=["media"])
 
 # Create database tables
 async def init_models():

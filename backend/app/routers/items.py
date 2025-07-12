@@ -1,10 +1,11 @@
 
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.dependencies import get_db, get_current_user
-from app.models.item import Item
-from app.schemas.item import ItemCreate, Item
+from app.models.item import Item as ItemModel  # modelo SQLAlchemy
+from app.schemas.item import ItemCreate, Item  # Pydantic
 from app.services.gemini_service import GeminiService
 from app.config import settings
 import httpx
@@ -13,28 +14,37 @@ import uuid
 
 router = APIRouter()
 
-async def upload_to_supabase_storage(file: UploadFile, user_id: str) -> str:
-    """Upload file to Supabase Storage and return the public URL."""
-    file_name = f"{user_id}/{uuid.uuid4()}_{file.filename}"
-    async with httpx.AsyncClient() as client:
-        # Upload file to Supabase Storage
-        response = await client.post(
-            f"{settings.SUPABASE_URL}/storage/v1/object/{settings.SUPABASE_STORAGE_BUCKET}/{file_name}",
-            headers={
-                "Authorization": f"Bearer {settings.SUPABASE_KEY}",
-                "Content-Type": file.content_type
-            },
-            content=await file.read()
-        )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to upload image to Supabase Storage, text: ${response.text}"
+async def upload_image(
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user)
+):
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    # Generate unique filename
+    file_key = f"{user_id}/{uuid.uuid4()}_{file.filename}"
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{settings.SUPABASE_URL}/storage/v1/object/{settings.SUPABASE_STORAGE_BUCKET}/{file_key}",
+                headers={
+                    "Authorization": f"Bearer {settings.SUPABASE_KEY}",
+                    "Content-Type": file.content_type
+                },
+                content=await file.read()
             )
-        
-        # Get public URL for the uploaded file
-        public_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.SUPABASE_STORAGE_BUCKET}/{file_name}"
-        return public_url
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Upload failed: {response.text}"
+                )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+
+    public_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.SUPABASE_STORAGE_BUCKET}/{file_key}"
+    return public_url
 
 @router.post("/", response_model=Item)
 async def create_item(
@@ -45,24 +55,34 @@ async def create_item(
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file type")
     
+    # Lê conteúdo da imagem uma vez
+    image_bytes = await file.read()
+
     # Upload image to Supabase Storage
-    img_url = await upload_to_supabase_storage(file, user_id)
+    file.file.seek(0)  # Reset buffer para upload
+    img_url = await upload_image(file, user_id)
+    print("image uploaded to Supabase:", img_url)
     
-    # Analyze image with Gemini
+    # Analyze image with Gemini using bytes
     gemini_service = GeminiService()
-    analysis = await gemini_service.analyze_image(img_url)
+    analysis = await gemini_service.analyze_image_bytes(image_bytes)
     
     item_data = ItemCreate(
         name=analysis.get("clothe_type"),
         type=analysis.get("clothe_type"),
         color=analysis.get("color"),
-        state="new",  # Default state
-        season=["all"],  # Default season
+        state="new",
+        season=["all"],
         img_url=img_url,
         for_sale=False
     )
     
-    db_item = Item(**item_data.dict(), user_id=user_id)
+    db_item = ItemModel(
+        id=uuid.uuid4(),
+        user_id=uuid.UUID(user_id),
+        created_at=datetime.now(timezone.utc),
+        **item_data.dict()
+    )
     db.add(db_item)
     await db.commit()
     await db.refresh(db_item)
