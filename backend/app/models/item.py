@@ -19,4 +19,6 @@ class Item(Base):
     img_url = Column(Text, nullable=False)
     for_sale = Column(Boolean, default=False)
     price = Column(Numeric)  # Constraint defined in SQL schema
+    characteristics = Column(ARRAY(Text)) 
+    style = Column(Text)                  
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.utcnow)

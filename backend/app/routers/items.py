@@ -70,9 +70,11 @@ async def create_item(
     item_data = ItemCreate(
         name=analysis.get("clothe_type"),
         type=analysis.get("clothe_type"),
+        characteristics=analysis.get("characteristics"),
+        style=analysis.get("style"),
         color=analysis.get("color"),
         state="new",
-        season=["all"],
+        season=analysis.get("season", []),
         img_url=img_url,
         for_sale=False
     )

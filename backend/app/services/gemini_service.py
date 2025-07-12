@@ -7,9 +7,9 @@ import base64
 class GeminiService:
     def __init__(self):
         self.api_key = settings.GEMINI_API_KEY
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
         
-    def sanitize_and_parse_json(text: str) -> dict:
+    def sanitize_and_parse_json(self, text: str) -> dict:
         # Remove blocos de markdown ```json ou ``` puro
         cleaned = re.sub(r"```(?:json)?\n?([\s\S]*?)\n?```", r"\1", text).strip()
         return json.loads(cleaned)
@@ -32,6 +32,7 @@ class GeminiService:
       "color": "string",                <!-- main color of the item -->
       "characteristics": ["string"],    <!-- e.g., "sleeveless", "v-neck", "denim" -->
       "style": "string"                 <!-- e.g., "casual", "formal", "sporty" -->
+      "season": ["string"]              <!-- e.g., "summer", "winter", "all" -->
     }
   </output_format>
 

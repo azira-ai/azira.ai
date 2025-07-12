@@ -7,4 +7,4 @@ async def get_db():
 
 # Disable auth — return dummy user ID
 async def get_current_user() -> str:
-    return "00000000-0000-0000-0000-000000000000"
+    return "8a520d4e-96c3-4836-9c39-6f9ba116b542"
