@@ -29,7 +29,7 @@ async def upload_to_supabase_storage(file: UploadFile, user_id: str) -> str:
         if response.status_code != 200:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to upload image to Supabase Storage"
+                detail=f"Failed to upload image to Supabase Storage, text: ${response.text}"
             )
         
         # Get public URL for the uploaded file
