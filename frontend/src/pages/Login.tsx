@@ -34,13 +34,13 @@ export default function Login() {
   return (
     <div
       className="min-h-screen flex flex-col justify-center items-center px-6
-                    bg-gradient-to-br from-pink-100 via-white to-purple-100
-                    animate-gradient-pan"
+                  bg-gradient-to-br from-pink-100 via-white to-purple-100
+                  animate-gradient-pan"
     >
       <h1
         className="text-5xl font-extrabold mb-4 text-transparent bg-clip-text
-                     bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400
-                     animate-gradient-pan"
+                   bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400
+                   animate-gradient-pan"
       >
         AZIRA
       </h1>
@@ -72,12 +72,14 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-3 rounded-full font-medium text-white transition
-                     ${
-                       loading
-                         ? "bg-gray-400 cursor-not-allowed"
-                         : "bg-purple-600 hover:bg-purple-500"
-                     }`}
+          className={`
+            w-full py-3 rounded-full font-medium text-white transition
+            ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 animate-gradient-pan"
+            }
+          `}
         >
           {loading
             ? isRegister
