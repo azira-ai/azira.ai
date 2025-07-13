@@ -3,24 +3,38 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_db, get_current_user
 from app.schemas.outfit import OutfitCreate, Outfit, OutfitResponse
-from app.schemas.outfit import OutfitResponse, Outfit, OutfitCreate as OutfitSchema
+from app.schemas.outfit import OutfitResponse, Outfit, OutfitCreate as OutfitSchema, OutfitRequest
 from app.services.recommendation_service import RecommendationService
 from typing import List
 from app.models.outfit import Outfit as OutfitModel
 from fastapi import HTTPException  # Adicione no topo, se ainda não tiver
+from app.dependencies import get_current_user_full
+from app.services.recommendation.hybrid import HybridRecommendationService
+from app.services.recommendation.user_only import UserOnlyRecommendationService
+
 
 router = APIRouter()
 
 @router.post("/", response_model=OutfitResponse)
 async def create_outfit(
-    outfit: OutfitCreate,
-    user_id: str = Depends(get_current_user),
+    outfit: OutfitRequest,
+    user: dict = Depends(get_current_user_full),
     db: AsyncSession = Depends(get_db)
 ):
-    recommendation_service = RecommendationService(db)
-    result = await recommendation_service.generate_outfit(user_id, outfit.event_raw, outfit.event_json)
+    gender = user["metadata"].get("gender", "unspecified")
+    
+    if outfit.mode == "user_only":
+        service = UserOnlyRecommendationService(db)
+    else:
+        service = HybridRecommendationService(db)
+    
 
-    if "error" in result or "outfit" not in result:
+    result = await service.generate_outfit(user["id"], outfit.event_raw, outfit.event_json, gender)
+
+    if "error" in result: 
+        raise HTTPException(status_code=400, detail=result["error"])
+    
+    if "outfit" not in result:
         raise HTTPException(status_code=400, detail=result.get("error", "Erro ao gerar o outfit"))
 
     db_outfit_orm = result["outfit"]
