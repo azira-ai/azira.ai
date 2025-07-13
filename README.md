@@ -9,7 +9,7 @@
 ![alt text](/frontend//public/image.png)
 
 ## 🔗 Links
-* **PITCH DeCK:** [PITCHDECK](documents/PitchDeck_Azira.pdf)
+* **PITCH DeCK:** [PITCHDECK](https://drive.google.com/file/d/1alkwB-g2wWUdCsE414p2rra4PfUYskm4/view?usp=sharing)
 * **Demo:** [VIDEO](https://youtu.be/DyEy7p-U1fc)
 * **Frontend (deploy):** [azira.netlify.app](https://azira.netlify.app)
 * **Design (Canvas):** [Protótipo no Canva](https://www.canva.com/design/DAGs1Vpkl9Q/yFXtwMpQKwkv_GMpmr5Kcg/edit?utm_content=DA%E2%80%A6m_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
