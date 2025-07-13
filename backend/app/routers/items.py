@@ -204,3 +204,24 @@ async def delete_item(
 
     await db.delete(item)
     await db.commit()
+
+
+@router.post("/get-mine-and-paid", response_model=List[Item])
+async def get_mine_and_paid_items(
+    user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(ItemModel).filter_by(user_id=user_id))
+    personal_items = result.scalars().all()
+    
+    paid_result = await db.execute(
+        select(ItemModel).filter(
+            ItemModel.for_sale == True,
+            ItemModel.user_id != user_id
+        )
+    )
+    
+    paid_items = paid_result.scalars().all()
+    
+    items = personal_items + paid_items
+    return items
