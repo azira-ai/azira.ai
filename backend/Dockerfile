@@ -6,7 +6,7 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/app /app/app
+COPY app /app/app
 
 EXPOSE ${PORT}
 
