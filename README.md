@@ -1,39 +1,42 @@
+<img src="/frontend/public/logo.png" alt="Azira Logo" width="200">
+
 # Azira
 
 **Azira** é uma solução para te deixar mais estiloso. É um webapp especialista no seu guarda-roupa, que conta com uma IA estilista capaz de montar os melhores looks para as ocasiões do dia a dia, economizando tempo e dinheiro (já que você não precisará comprar novas peças) e potencializando sua autoestima.
 
 # Arquitetura
+
 ![alt text](/frontend//public/image.png)
 
 ## 🔗 Links
 
-* **Pitch:** [Insira o link do pitch aqui](URL_DO_PITCH)
-* **Frontend (deploy):** [azira.netlify.app](https://azira.netlify.app)
+- **Pitch:** [Insira o link do pitch aqui](URL_DO_PITCH)
+- **Frontend (deploy):** [azira.netlify.app](https://azira.netlify.app)
   \$1
-* **Design (Canvas):** [Protótipo no Canva](https://www.canva.com/design/DAGs1Vpkl9Q/yFXtwMpQKwkv_GMpmr5Kcg/edit?utm_content=DA%E2%80%A6m_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+- **Design (Canvas):** [Protótipo no Canva](https://www.canva.com/design/DAGs1Vpkl9Q/yFXtwMpQKwkv_GMpmr5Kcg/edit?utm_content=DA%E2%80%A6m_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
 ## ✨ Funcionalidades
 
-* 📸 **Catalogação do guarda-roupa via IA:** basta tirar foto das peças para adicioná-las ao seu acervo.
-* 👗 **Montagem de outfits personalizados:** receba sugestões de looks para qualquer ocasião.
-* 💸 **Venda de peças:** coloque aquelas roupas que você não usa à venda com poucos cliques.
-* 🛍️ **Combinação de itens à venda:** visualize e combine peças novas com seu guarda-roupa antes da compra.
+- 📸 **Catalogação do guarda-roupa via IA:** basta tirar foto das peças para adicioná-las ao seu acervo.
+- 👗 **Montagem de outfits personalizados:** receba sugestões de looks para qualquer ocasião.
+- 💸 **Venda de peças:** coloque aquelas roupas que você não usa à venda com poucos cliques.
+- 🛍️ **Combinação de itens à venda:** visualize e combine peças novas com seu guarda-roupa antes da compra.
 
 ## 🛠️ Tecnologias
 
-* **Frontend:** Vite, React, TypeScript, Firebase
-* **Backend:** FastAPI, Uvicorn, Python
-* **Banco de dados & Autenticação:** Supabase
-* **Visão computacional & IA:** Gemini (Google)
+- **Frontend:** Vite, React, TypeScript, Firebase
+- **Backend:** FastAPI, Uvicorn, Python
+- **Banco de dados & Autenticação:** Supabase
+- **Visão computacional & IA:** Gemini (Google)
 
 ## 💻 Como rodar o projeto
 
 ### Pré-requisitos
 
-* Node.js (v14+)
-* npm ou yarn
-* Python 3.8+
-* Git
+- Node.js (v14+)
+- npm ou yarn
+- Python 3.8+
+- Git
 
 ### 🚀 Frontend
 
@@ -42,6 +45,7 @@
    ```bash
    cd frontend
    ```
+
 2. Crie um arquivo `.env` com as seguintes variáveis:
 
    ```dotenv
@@ -54,6 +58,7 @@
    VITE_FIREBASE_MEASUREMENT_ID=
    VITE_API_URL=
    ```
+
 3. Instale as dependências e inicie o servidor de desenvolvimento:
 
    ```bash
@@ -68,6 +73,7 @@
    ```bash
    cd backend
    ```
+
 2. Crie e ative um ambiente virtual:
 
    ```bash
@@ -77,6 +83,7 @@
    # Windows
    venv\Scripts\activate
    ```
+
 3. Crie um arquivo `.env` com as variáveis abaixo:
 
    ```dotenv
@@ -87,6 +94,7 @@
    SUPABASE_STORAGE_BUCKET=
    SECRET_KEY=
    ```
+
 4. Instale as dependências e execute o servidor:
 
    ```bash
