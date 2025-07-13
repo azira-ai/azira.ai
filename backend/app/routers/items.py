@@ -11,8 +11,17 @@ from app.config import settings
 import httpx
 from typing import List
 import uuid
+from fastapi import Path
+from uuid import UUID
+from pydantic import UUID4
+from fastapi import status
 
 router = APIRouter()
+
+# Função para pegar o caminho da foto no supabase
+def _extract_supabase_path(public_url: str) -> str:
+    prefix = f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.SUPABASE_STORAGE_BUCKET}/"
+    return public_url.replace(prefix, "")
 
 async def upload_image(
     file: UploadFile = File(...),
@@ -93,6 +102,61 @@ async def create_item(
     return db_item
 
 @router.get("/", response_model=List[Item])
-async def get_items(user_id: str = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Item).filter_by(user_id=user_id))
+async def get_items(
+    user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(ItemModel).filter_by(user_id=user_id))
     return result.scalars().all()
+
+@router.get("/{item_id}", response_model=Item)
+async def get_item_by_id(
+    item_id: UUID4 = Path(...),
+    user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(ItemModel).where(ItemModel.id == item_id, ItemModel.user_id == user_id)
+    )
+    item = result.scalar_one_or_none()
+
+    if item is None:
+        raise HTTPException(status_code=404, detail="Item não encontrado")
+
+    return item
+
+@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_item(
+    item_id: UUID = Path(...),
+    user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Busca o item no banco
+    result = await db.execute(
+        select(ItemModel).where(ItemModel.id == item_id, ItemModel.user_id == user_id)
+    )
+    item = result.scalar_one_or_none()
+
+    if item is None:
+        raise HTTPException(status_code=404, detail="Item não encontrado")
+
+    # Extrai o nome do arquivo do Supabase
+    supabase_path = _extract_supabase_path(item.img_url)
+
+    # Remove a imagem do Supabase
+    try:
+        async with httpx.AsyncClient() as client:
+            delete_response = await client.delete(
+                f"{settings.SUPABASE_URL}/storage/v1/object/{settings.SUPABASE_STORAGE_BUCKET}/{supabase_path}",
+                headers={"Authorization": f"Bearer {settings.SUPABASE_KEY}"}
+            )
+            if delete_response.status_code not in (200, 204):
+                raise HTTPException(status_code=500, detail="Erro ao deletar imagem do Supabase")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar imagem: {e}")
+
+    # Deleta o item do banco
+    await db.delete(item)
+    await db.commit()
+
+    return None  # 204 No Content
