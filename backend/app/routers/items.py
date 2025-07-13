@@ -1,4 +1,3 @@
-
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +13,7 @@ import uuid
 from fastapi import Path
 from uuid import UUID
 from pydantic import UUID4
-from fastapi import status
+from rembg import remove
 
 router = APIRouter()
 
@@ -23,32 +22,27 @@ def _extract_supabase_path(public_url: str) -> str:
     prefix = f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.SUPABASE_STORAGE_BUCKET}/"
     return public_url.replace(prefix, "")
 
-async def upload_image(
-    file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user)
+async def upload_bytes_to_supabase(
+    image_bytes: bytes,
+    user_id: str,
+    filename: str,
 ):
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
-
-    # Generate unique filename
-    file_key = f"{user_id}/{uuid.uuid4()}_{file.filename}"
-
+    file_key = f"{user_id}/{uuid.uuid4()}_{filename}"
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{settings.SUPABASE_URL}/storage/v1/object/{settings.SUPABASE_STORAGE_BUCKET}/{file_key}",
                 headers={
                     "Authorization": f"Bearer {settings.SUPABASE_KEY}",
-                    "Content-Type": file.content_type
+                    "Content-Type": "image/png"
                 },
-                content=await file.read()
+                content=image_bytes
             )
             if response.status_code != 200:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Upload failed: {response.text}"
                 )
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
 
@@ -63,19 +57,24 @@ async def create_item(
 ):
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file type")
-    
-    # Lê conteúdo da imagem uma vez
+
+    # Lê conteúdo da imagem
     image_bytes = await file.read()
 
-    # Upload image to Supabase Storage
-    file.file.seek(0)  # Reset buffer para upload
-    img_url = await upload_image(file, user_id)
-    print("image uploaded to Supabase:", img_url)
-    
-    # Analyze image with Gemini using bytes
+    # Remove fundo da imagem
+    try:
+        image_without_bg = remove(image_bytes)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao remover fundo da imagem: {e}")
+
+    # Faz upload da imagem sem fundo para o Supabase
+    img_url = await upload_bytes_to_supabase(image_without_bg, user_id, file.filename)
+    print("Imagem sem fundo enviada para Supabase:", img_url)
+
+    # Analisa imagem sem fundo com Gemini
     gemini_service = GeminiService()
-    analysis = await gemini_service.analyze_image_bytes(image_bytes)
-    
+    analysis = await gemini_service.analyze_image_bytes(image_without_bg)
+
     item_data = ItemCreate(
         name=analysis.get("clothe_type"),
         type=analysis.get("clothe_type"),
@@ -88,7 +87,7 @@ async def create_item(
         img_url=img_url,
         for_sale=False
     )
-    
+
     db_item = ItemModel(
         id=uuid.uuid4(),
         user_id=uuid.UUID(user_id),
@@ -98,7 +97,7 @@ async def create_item(
     db.add(db_item)
     await db.commit()
     await db.refresh(db_item)
-    
+
     return db_item
 
 @router.get("/", response_model=List[Item])
