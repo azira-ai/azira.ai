@@ -206,7 +206,7 @@ async def delete_item(
     await db.commit()
 
 
-@router.post("/get-mine-and-paid", response_model=List[Item])
+@router.get("/query/join", response_model=List[Item])
 async def get_mine_and_paid_items(
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
