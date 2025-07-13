@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AZIRA</title>
+
+    <style>
+      /* Prefer esquema de cores escuro, mas deixa o usuário escolher se quiser */
+      :root {
+        color-scheme: dark light;
+      }
+    </style>
+
+    <!-- Tailwind via CDN (rápido e funcional) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#A02CFF",
+              hover: "#FF2DAF",
+              "gradient-end": "#FF6D00",
+            },
+            keyframes: {
+              "gradient-pan": {
+                "0%, 100%": { "background-position": "0% 50%" },
+                "50%": { "background-position": "100% 50%" },
+              },
+              "gradient-border": {
+                "0%, 100%": { "background-position": "0% 50%" },
+                "50%": { "background-position": "100% 50%" },
+              },
+            },
+            animation: {
+              "gradient-pan": "gradient-pan 3s linear infinite",
+              "gradient-border": "gradient-border 4s linear infinite",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+
+  <body class="bg-[#181818] text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
