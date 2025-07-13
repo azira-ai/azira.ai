@@ -73,6 +73,7 @@ async def create_item(
         characteristics=analysis.get("characteristics"),
         style=analysis.get("style"),
         color=analysis.get("color"),
+        category=analysis.get("category"),
         state="new",
         season=analysis.get("season", []),
         img_url=img_url,

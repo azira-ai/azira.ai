@@ -9,6 +9,7 @@ class ItemBase(BaseModel):
     characteristics: Optional[List[str]] = None  
     style: Optional[str] = None                  
     state: Optional[str] = None
+    category: Optional[str] = None
     season: Optional[List[str]] = None
     img_url: str
     for_sale: bool = False

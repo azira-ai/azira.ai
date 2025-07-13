@@ -33,6 +33,7 @@ class GeminiService:
       "characteristics": ["string"],    <!-- e.g., "sleeveless", "v-neck", "denim" -->
       "style": "string"                 <!-- e.g., "casual", "formal", "sporty" -->
       "season": ["string"]              <!-- e.g., "summer", "winter", "all" -->
+      "category": "string"              <!-- must be one of: "top", "bottom", "shoes" -->
     }
   </output_format>
 
@@ -65,7 +66,7 @@ class GeminiService:
             ]
         }
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
             response = await client.post(
                 self.base_url,
                 headers={"Content-Type": "application/json"},

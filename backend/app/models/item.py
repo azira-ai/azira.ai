@@ -16,6 +16,7 @@ class Item(Base):
     color = Column(Text)
     state = Column(Text)
     season = Column(ARRAY(Text))
+    category = Column(Text)  
     img_url = Column(Text, nullable=False)
     for_sale = Column(Boolean, default=False)
     price = Column(Numeric)  # Constraint defined in SQL schema
