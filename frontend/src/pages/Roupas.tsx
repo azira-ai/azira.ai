@@ -1,47 +1,90 @@
-import React, { useState, useMemo } from "react";
+// src/pages/Roupas.tsx
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
+import api from "@/lib/api";
 
-/* ------------------- DATA ------------------- */
-export type Category = "all" | "tops" | "bottoms" | "shoes";
+export type CategoryFilter = "all" | "tops" | "bottoms" | "shoes";
 
 export interface Clothing {
   id: string;
   name: string;
-  category: Category;
-  image_url?: string;
+  category: string;
+  type?: string;
+  img_url?: string;
 }
 
 const placeholder = "https://cdn-icons-png.flaticon.com/512/892/892458.png";
+// Tipos adicionais agrupados sob "tops" e "bottoms"
+const topTypes = new Set([
+  "shirt",
+  "jacket",
+  "coat",
+  "blouse",
+  "sweater",
+  "hoodie",
+  "jersey",
+]);
+const bottomTypes = new Set(["pants", "shorts", "skirt", "jeans", "trousers"]);
 
-export const MOCK_CLOTHES: Clothing[] = [
-  { id: "1", name: "Camiseta Branca", category: "tops" },
-  { id: "2", name: "Jaqueta Jeans", category: "tops" },
-  { id: "3", name: "Vestido Floral", category: "tops" },
-  { id: "4", name: "Calça Preta", category: "bottoms" },
-  { id: "5", name: "Saia Midi", category: "bottoms" },
-  { id: "6", name: "Tênis Branco", category: "shoes" },
-];
-
-/* ------------------ PAGE ------------------ */
 export default function Roupas() {
-  const [filter, setFilter] = useState<Category>("all");
+  const [filter, setFilter] = useState<CategoryFilter>("all");
+  const [items, setItems] = useState<Clothing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const clothes = useMemo(
-    () =>
-      filter === "all"
-        ? MOCK_CLOTHES
-        : MOCK_CLOTHES.filter((c) => c.category === filter),
-    [filter]
-  );
+  useEffect(() => {
+    setLoading(true);
+    api
+      .get<Clothing[]>("/items")
+      .then((res) => {
+        setItems(res.data);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar peças:", err);
+        setItems([]);
+        setError(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const filteredItems = useMemo(() => {
+    if (filter === "all") return items;
+    if (filter === "tops")
+      return items.filter((c) => {
+        const cat = c.category.toLowerCase();
+        return (
+          cat === "tops" ||
+          cat === "top" ||
+          (c.type && topTypes.has(c.type.toLowerCase()))
+        );
+      });
+    if (filter === "bottoms")
+      return items.filter((c) => {
+        const cat = c.category.toLowerCase();
+        return (
+          cat === "bottoms" ||
+          cat === "bottom" ||
+          (c.type && bottomTypes.has(c.type.toLowerCase()))
+        );
+      });
+    if (filter === "shoes")
+      return items.filter((c) => {
+        const cat = c.category.toLowerCase();
+        return cat === "shoes" || cat === "shoe";
+      });
+    return items;
+  }, [filter, items]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
       <Header />
 
       <main className="flex-1 pt-16 pb-24 px-4 max-w-md md:max-w-xl mx-auto w-full">
-        {/* titulo */}
         <h1 className="text-xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] animate-gradient-pan">
           Meu Armário
         </h1>
@@ -49,7 +92,6 @@ export default function Roupas() {
           Suas peças organizadas, você mais estiloso
         </p>
 
-        {/* filtro */}
         <div className="mb-4 flex rounded-full border border-gray-300 overflow-hidden text-xs font-medium">
           {[
             { id: "all", label: "Todas" },
@@ -59,7 +101,7 @@ export default function Roupas() {
           ].map(({ id, label }) => (
             <button
               key={id}
-              onClick={() => setFilter(id as Category)}
+              onClick={() => setFilter(id as CategoryFilter)}
               className={`flex-1 py-2 transition-colors ${
                 filter === id
                   ? "bg-white text-transparent bg-clip-text bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] animate-gradient-pan"
@@ -71,21 +113,28 @@ export default function Roupas() {
           ))}
         </div>
 
-        {/* grid */}
-        {clothes.length === 0 ? (
-          <p className="text-center text-gray-500 mt-20">
-            Nenhuma peça cadastrada.
-          </p>
+        {loading ? (
+          <p className="text-center text-gray-500 mt-20">Carregando peças…</p>
+        ) : filteredItems.length === 0 ? (
+          <div className="text-center text-gray-600 mt-20 space-y-4">
+            <p>Nenhuma peça cadastrada.</p>
+            <Link
+              to="/roupas/novo"
+              className="text-purple-600 underline hover:text-purple-500"
+            >
+              Quer cadastrar agora?
+            </Link>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-            {clothes.map((item) => (
+            {filteredItems.map((item) => (
               <Link
                 to={`/roupas/${item.id}`}
                 key={item.id}
                 className="relative bg-white border border-gray-200 rounded-xl overflow-hidden flex items-center justify-center aspect-square hover:shadow-sm transition-shadow"
               >
                 <img
-                  src={item.image_url || placeholder}
+                  src={item.img_url || placeholder}
                   onError={(e) => (e.currentTarget.src = placeholder)}
                   alt={item.name}
                   className="h-3/4 w-3/4 object-contain"
@@ -96,7 +145,6 @@ export default function Roupas() {
         )}
       </main>
 
-      {/* add peça */}
       <Link
         to="/roupas/novo"
         aria-label="Adicionar Peça"
@@ -120,7 +168,6 @@ export default function Roupas() {
 
       <BottomNav />
 
-      {/* animação gradiente */}
       <style jsx global>{`
         @keyframes gradient-pan {
           0%,

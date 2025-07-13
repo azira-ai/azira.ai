@@ -1,65 +1,105 @@
+// src/pages/Login.tsx
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import GoogleLogo from "@/assets/icons8-google-logo-96.svg";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, signUp } = useAuth();
   const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     try {
-      await login(); // OAuth do Google
+      if (isRegister) {
+        await signUp(email, password);
+      } else {
+        await login(email, password);
+      }
       navigate("/");
-    } catch {
-      alert("Falha ao entrar com o Google.");
+    } catch (err: any) {
+      alert(
+        err.message ||
+          (isRegister ? "Falha ao cadastrar" : "Falha ao fazer login")
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-evenly items-center bg-[#181818] px-6">
-      {/* --------- marca --------- */}
+    <div
+      className="min-h-screen flex flex-col justify-center items-center px-6
+                    bg-gradient-to-br from-pink-100 via-white to-purple-100
+                    animate-gradient-pan"
+    >
       <h1
-        className="
-          text-5xl sm:text-6xl font-extrabold uppercase text-transparent bg-clip-text
-          bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00]
-          animate-gradient-pan text-center
-        "
+        className="text-5xl font-extrabold mb-4 text-transparent bg-clip-text
+                     bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400
+                     animate-gradient-pan"
       >
         AZIRA
       </h1>
-
-      {/* --------- slogan --------- */}
-      <p className="text-white text-center max-w-md leading-relaxed">
-        Transforme seus desejos e estilo em <strong>momentos memoráveis</strong>.
-        <br />
-        <span className="font-semibold">Experimente o que é a Azira.</span>
+      <p className="text-lg text-gray-700 mb-8 text-center max-w-md">
+        Seu stylist personalizado: transforme seu guarda-roupa com IA.
       </p>
 
-      {/* --------- botão Google --------- */}
-      <button
-        onClick={handleLogin}
-        disabled={loading}
-        className={`
-          w-full max-w-xs flex items-center justify-center gap-3
-          ${loading ? "bg-gray-200 cursor-not-allowed" : "bg-white hover:bg-gray-100"}
-          border border-gray-300 text-gray-800 font-medium
-          py-3 rounded-full shadow-sm
-          focus:outline-none focus:ring-2 focus:ring-[#A02CFF]
-          transition-colors duration-200
-        `}
-      >
-        {!loading && (
-          <img src={GoogleLogo} alt="Logo do Google" className="w-5 h-5" />
-        )}
-        {loading ? "Entrando…" : "Entrar com o Google"}
-      </button>
+      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
+        <input
+          type="email"
+          placeholder="E-mail"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full px-4 py-3 rounded-md bg-white placeholder-gray-400
+                     text-gray-900 border-none focus:outline-none
+                     focus:ring-2 focus:ring-purple-500"
+        />
+        <input
+          type="password"
+          placeholder="Senha"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full px-4 py-3 rounded-md bg-white placeholder-gray-400
+                     text-gray-900 border-none focus:outline-none
+                     focus:ring-2 focus:ring-purple-500"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className={`w-full py-3 rounded-full font-medium text-white transition
+                     ${
+                       loading
+                         ? "bg-gray-400 cursor-not-allowed"
+                         : "bg-purple-600 hover:bg-purple-500"
+                     }`}
+        >
+          {loading
+            ? isRegister
+              ? "Cadastrando…"
+              : "Entrando…"
+            : isRegister
+            ? "Cadastrar"
+            : "Entrar"}
+        </button>
+      </form>
 
-      {/* animação do gradiente */}
+      <p className="mt-4 text-sm text-gray-600">
+        {isRegister ? "Já tem conta?" : "Não tem conta?"}{" "}
+        <button
+          type="button"
+          onClick={() => setIsRegister(!isRegister)}
+          className="text-purple-600 underline"
+        >
+          {isRegister ? "Faça login" : "Crie uma"}
+        </button>
+      </p>
+
       <style>{`
         @keyframes gradient-pan {
           0%,100% { background-position: 0% 50%; }
@@ -67,7 +107,7 @@ export default function Login() {
         }
         .animate-gradient-pan {
           background-size: 200% 200%;
-          animation: gradient-pan 4s linear infinite;
+          animation: gradient-pan 8s ease infinite;
         }
       `}</style>
     </div>

@@ -5,29 +5,24 @@ import React, {
   useState,
   ReactNode,
 } from "react";
-import { api } from "@/lib/api";
-import { loginWithGoogle } from "@/firebase";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut,
-  User as FirebaseUser,
-} from "firebase/auth";
+import { supabase } from "@/lib/supabaseClient";
+import api from "@/lib/api";
 
 export type User = {
   id: string;
   email: string;
-  nickname: string;
-  full_name: string;
-  is_iconic: boolean;
-  role: string;
+  nickname?: string;
+  full_name?: string;
+  is_iconic?: boolean;
+  role?: string;
 };
 
 interface AuthContextProps {
   user: User | null;
   token: string | null;
   isIconic: boolean;
-  login: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -35,93 +30,85 @@ interface AuthContextProps {
 const AuthContext = createContext<AuthContextProps>({} as AuthContextProps);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const auth = getAuth();
-
-  /** ← carrega do localStorage para evitar fetch inicial */
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? (JSON.parse(stored) as User) : null;
-  });
-
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem("token")
-  );
-  const [isIconic, setIsIconic] = useState(() => Boolean(user?.is_iconic));
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isIconic, setIsIconic] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  /** pega /api/users/me e atualiza cache */
+  // Busca perfil no backend (rota /user/me) fileciteturn4file0
   const fetchMe = async () => {
-    const res = await api.get<User>("/api/users/me");
+    const res = await api.get<User>("/user/me");
     setUser(res.data);
     setIsIconic(Boolean(res.data.is_iconic));
     localStorage.setItem("user", JSON.stringify(res.data));
   };
 
-  /** público – pode ser usado onde precisar de dados frescos */
-  const refresh = async () => {
-    try {
-      if (token) await fetchMe();
-    } catch (e) {
-      console.error("Falha ao atualizar usuário", e);
-    }
-  };
-
-  const exchangeAndStoreToken = async (idToken: string) => {
-    const { data } = await api.post<{ access_token: string }>(
-      "/api/auth/login/firebase",
-      { idToken }
-    );
-    const jwt = data.access_token;
+  // Login Supabase + seta header e busca perfil
+  const login = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error || !data.session)
+      throw new Error(error?.message || "Erro no login");
+    const jwt = data.session.access_token;
     localStorage.setItem("token", jwt);
-    sessionStorage.setItem("firebase-authenticated", "true");
-    setToken(jwt);
     api.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
-    /** fazemos UM fetch agora para popular user e cache */
+    setToken(jwt);
     await fetchMe();
   };
 
-  const login = async () => {
-    const idToken = await loginWithGoogle();
-    if (idToken) await exchangeAndStoreToken(idToken);
+  // Cadastro Supabase: trata 422 e confirma e-mail
+  const signUp = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      if (
+        error.status === 422 &&
+        error.message.includes("already registered")
+      ) {
+        throw new Error("Usuário já cadastrado. Tente fazer login.");
+      }
+      throw new Error(error.message);
+    }
+    // Se o Supabase já devolveu sessão, então busca perfil
+    if (data.session) {
+      const jwt = data.session.access_token;
+      localStorage.setItem("token", jwt);
+      api.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
+      setToken(jwt);
+      await fetchMe();
+    } else {
+      throw new Error(
+        "Cadastro realizado! Verifique seu e-mail para confirmar."
+      );
+    }
   };
 
   const logout = async () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("firebase-authenticated");
+    await supabase.auth.signOut();
+    localStorage.clear();
     setToken(null);
     setUser(null);
     setIsIconic(false);
     delete api.defaults.headers.common["Authorization"];
-    await signOut(auth);
   };
 
-  /** ----- Inicialização sem pingar backend ----- */
+  // Inicializa token + busca perfil uma vez
   useEffect(() => {
-    const prevAuth = sessionStorage.getItem("firebase-authenticated");
-    if (prevAuth && token) {
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      /* NÃO chama fetchMe agora: dados já em cache (ou serão buscados via refresh) */
-      setInitialized(true);
-    } else {
-      /* Primeiro acesso ou token ausente → esperar Firebase */
-      const unsubscribe = onAuthStateChanged(
-        auth,
-        async (fbUser: FirebaseUser | null) => {
-          if (fbUser) {
-            try {
-              const idToken = await fbUser.getIdToken();
-              await exchangeAndStoreToken(idToken);
-            } catch {
-              await logout();
-            }
-          }
-          setInitialized(true);
+    (async () => {
+      const stored = localStorage.getItem("token");
+      if (stored) {
+        setToken(stored);
+        api.defaults.headers.common["Authorization"] = `Bearer ${stored}`;
+        try {
+          await fetchMe();
+        } catch {
+          await logout();
         }
-      );
-      return unsubscribe;
-    }
-  }, [token]);
+      }
+      setInitialized(true);
+    })();
+  }, []);
 
   if (!initialized) {
     return (
@@ -133,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isIconic, login, logout, refresh }}
+      value={{ user, token, isIconic, login, signUp, logout, refresh: fetchMe }}
     >
       {children}
     </AuthContext.Provider>
