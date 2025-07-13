@@ -18,7 +18,7 @@ app = FastAPI(title="Fashion AI App", version="1.0.0")
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:4173"],  # front-end Vite dev server
+    allow_origins=["http://localhost:5173", "http://localhost:4173", "https://azira.netlify.app"],  # front-end Vite dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
