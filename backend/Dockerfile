@@ -1,4 +1,4 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.13
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11
 
 # Set working directory
 WORKDIR /app
