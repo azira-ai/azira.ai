@@ -1,6 +1,7 @@
 from pydantic import BaseModel, UUID4
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from typing import Literal
 
 class OutfitBase(BaseModel):
     event_raw: Optional[str] = None
@@ -9,6 +10,11 @@ class OutfitBase(BaseModel):
 
 class OutfitCreate(OutfitBase):
     pass
+
+class OutfitRequest(BaseModel):
+    event_raw: Optional[str] = None
+    event_json: Optional[Dict[str, Any]] = None
+    mode: Literal['user_only', 'hybrid'] = 'hybrid'
 
 class Outfit(BaseModel):
     id: UUID4
@@ -20,6 +26,23 @@ class Outfit(BaseModel):
 
     class Config:
         from_attributes = True
+        
+        
+class CustomOutfitRequest(BaseModel): 
+    items: List[UUID4]
+
+class CustomOutfit(BaseModel):
+    id: UUID4
+    generated_by: Optional[str] = None  
+    items: List[UUID4]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+        orm_mode = True
+        
+class CustomOutfitResponse(BaseModel):
+    outfit: CustomOutfit
 
 class OutfitResponse(BaseModel):
     outfit: Outfit

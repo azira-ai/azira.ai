@@ -10,8 +10,7 @@ import asyncio
 
 from app.database.database import engine
 from app.models import item, outfit, profile
-from app.routers import items, outfits, upload_router, user, profiles
-
+from app.routers import items, outfits, user, profiles, upload_router
 
 app = FastAPI(title="Fashion AI App", version="1.0.0")
 
