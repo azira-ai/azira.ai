@@ -3,11 +3,11 @@
 **Azira** é uma solução para te deixar mais estiloso. É um webapp especialista no seu guarda-roupa, que conta com uma IA estilista capaz de montar os melhores looks para as ocasiões do dia a dia, economizando tempo e dinheiro (já que você não precisará comprar novas peças) e potencializando sua autoestima.
 
 # Arquitetura
-![alt text](/frontend//public/image.png)
+![alt text](/frontend//public/image.png)A
 
 ## 🔗 Links
-
-* **Pitch:** [Insira o link do pitch aqui](URL_DO_PITCH)
+* **PITCH DeCK:** [PITCHDECK](URL_DO_PITCH)
+* **Demo:** [VIDEO](https://youtu.be/DyEy7p-U1fc)
 * **Frontend (deploy):** [azira.netlify.app](https://azira.netlify.app)
   \$1
 * **Design (Canvas):** [Protótipo no Canva](https://www.canva.com/design/DAGs1Vpkl9Q/yFXtwMpQKwkv_GMpmr5Kcg/edit?utm_content=DA%E2%80%A6m_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
