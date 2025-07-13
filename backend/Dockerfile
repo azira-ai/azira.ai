@@ -1,4 +1,4 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8
 
 # Set working directory
 WORKDIR /app
@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . /app
 
-# Expose the port (Render assigns dynamically via $PORT)
+# Expose the port
 EXPOSE $PORT
 
-# Command to run the app (using Uvicorn or Gunicorn)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "$PORT"]
+# Run Uvicorn with a shell to interpret $PORT
+CMD uvicorn main:app --host 0.0.0.0 --port $PORT
