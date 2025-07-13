@@ -26,6 +26,23 @@ class Outfit(BaseModel):
 
     class Config:
         from_attributes = True
+        
+        
+class CustomOutfitRequest(BaseModel): 
+    items: List[UUID4]
+
+class CustomOutfit(BaseModel):
+    id: UUID4
+    generated_by: Optional[str] = None  
+    items: List[UUID4]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+        orm_mode = True
+        
+class CustomOutfitResponse(BaseModel):
+    outfit: CustomOutfit
 
 class OutfitResponse(BaseModel):
     outfit: Outfit

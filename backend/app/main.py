@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import items, outfits, upload_router, user
+from app.routers import items, outfits, user
 from app.database.database import engine
 from app.models import item, outfit
 from sqlalchemy.ext.asyncio import AsyncSession
