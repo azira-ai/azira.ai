@@ -10,7 +10,7 @@ import asyncio
 
 from app.database.database import engine
 from app.models import item, outfit, profile
-from app.routers import items, outfits, user, profiles, upload_router
+from app.routers import items, outfits, user, profiles
 
 app = FastAPI(title="Fashion AI App", version="1.0.0")
 
@@ -29,7 +29,7 @@ app.include_router(outfits.router, prefix="/outfits", tags=["outfits"])
 app.include_router(user.router, prefix="/user", tags=["user"])
 # profiles.router já define prefix="/profiles"
 app.include_router(profiles.router)
-app.include_router(upload_router.router, prefix="/upload", tags=["upload"])
+
 
 # Create database tables
 async def init_models():
