@@ -30,6 +30,7 @@ class ItemUpdate(BaseModel):
     season: Optional[List[str]] = None
     img_url: Optional[str] = None
     for_sale: Optional[bool] = None
+    price: Optional[float] = None
 
 # --- Helpers ---
 def _extract_supabase_path(public_url: str) -> str:
