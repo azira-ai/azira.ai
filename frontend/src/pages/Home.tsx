@@ -25,14 +25,12 @@ interface OutfitResponse {
   recommendation: string;
 }
 
-// Presets
 const presets = [
   { label: "Look Profissional", type: "professional" },
   { label: "Look Casual", type: "casual" },
   { label: "Look Festa", type: "party" },
 ];
 
-// Carrossel com item central maior e laterais borradas
 function ClothingCarousel({
   items,
   running,
@@ -49,7 +47,7 @@ function ClothingCarousel({
     if (!running || len < 2) return;
     const timer = setInterval(() => {
       setIndex((i) => (i + 1) % len);
-    }, 2000);
+    }, 8000);
     return () => clearInterval(timer);
   }, [running, len]);
 
@@ -95,7 +93,9 @@ export default function Home() {
   const [chat, setChat] = useState("");
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [running, setRunning] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<OutfitResponse | null>(null);
+  const [showRec, setShowRec] = useState(false);
   const [topsId, setTopsId] = useState<string | null>(null);
   const [bottomsId, setBottomsId] = useState<string | null>(null);
   const [shoesId, setShoesId] = useState<string | null>(null);
@@ -112,17 +112,17 @@ export default function Home() {
     return list.sort(() => Math.random() - 0.5).slice(0, 3);
   }
 
-  const topsList: CarouselItem[] = pickRandom(
+  const topsList = pickRandom(
     clothes
       .filter((c) => c.category?.toLowerCase().includes("top"))
       .map((c) => ({ id: c.id, image_url: c.img_url || "" }))
   );
-  const bottomsList: CarouselItem[] = pickRandom(
+  const bottomsList = pickRandom(
     clothes
       .filter((c) => c.category?.toLowerCase().includes("bottom"))
       .map((c) => ({ id: c.id, image_url: c.img_url || "" }))
   );
-  const shoesList: CarouselItem[] = pickRandom(
+  const shoesList = pickRandom(
     clothes
       .filter((c) => c.category?.toLowerCase().includes("shoe"))
       .map((c) => ({ id: c.id, image_url: c.img_url || "" }))
@@ -133,22 +133,24 @@ export default function Home() {
       toast.error("Descreva onde você vai antes de enviar.");
       return;
     }
-
     const selectedItems = [topsId, bottomsId, shoesId].filter(Boolean);
-
     if (selectedItems.length < 3) {
       toast.error("Selecione ao menos uma peça de cada categoria.");
       return;
     }
 
     setRunning(false);
+    setIsLoading(true);
+    setSuggestion(null);
+    setShowRec(false);
+
     try {
       const payload = {
         event_raw: `${
           selectedPreset ? `Look: ${selectedPreset}\n` : ""
         }${chat}`,
-        event_json: { preset: selectedPreset, description: chat },
-        items: selectedItems,
+        event_json: { additionalProp1: {} },
+        mode: "user_only",
       };
 
       const res = await api.post<OutfitResponse>("/outfits/", payload);
@@ -159,6 +161,8 @@ export default function Home() {
       const detail =
         err.response?.data?.detail?.[0]?.msg || "Erro desconhecido";
       toast.error(`Falha ao gerar look: ${detail}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -169,14 +173,38 @@ export default function Home() {
       <main className="flex-1 pt-20 pb-24 px-4 flex flex-col items-center overflow-hidden">
         <ToastContainer position="top-right" autoClose={3000} />
 
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute top-16 inset-x-0 bottom-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-10">
+            {/* Animated bouncing dots */}
+            <div className="flex space-x-2 mb-4">
+              <div
+                className="w-4 h-4 rounded-full bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] animate-bounce"
+                style={{ animationDelay: "0s" }}
+              />
+              <div
+                className="w-4 h-4 rounded-full bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] animate-bounce"
+                style={{ animationDelay: "0.2s" }}
+              />
+              <div
+                className="w-4 h-4 rounded-full bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] animate-bounce"
+                style={{ animationDelay: "0.4s" }}
+              />
+            </div>
+            <p className="text-xl font-semibold text-gray-800 text-center">
+              Azira Stylist está montando o seu look perfeito...
+            </p>
+          </div>
+        )}
+
         {/* Presets */}
-        <div className="w-full overflow-x-auto hide-scrollbar flex space-x-4 mb-6">
+        <div className="w-full overflow-x-hidden hide-scrollbar flex space-x-4 mb-6">
           {presets.map((p) => {
             const isActive = p.type === selectedPreset;
             return (
               <button
                 key={p.type}
-                onClick={() => setSelectedPreset(p.type)}
+                onClick={() => setSelectedPreset(isActive ? null : p.type)}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] text-white"
@@ -189,24 +217,24 @@ export default function Home() {
           })}
         </div>
 
-        {/* Carrosséis */}
+        {/* Carousels */}
         <ClothingCarousel
           items={topsList}
-          running={running}
+          running={running && !isLoading}
           onIndexChange={setTopsId}
         />
         <ClothingCarousel
           items={bottomsList}
-          running={running}
+          running={running && !isLoading}
           onIndexChange={setBottomsId}
         />
         <ClothingCarousel
           items={shoesList}
-          running={running}
+          running={running && !isLoading}
           onIndexChange={setShoesId}
         />
 
-        {/* Chat e botão */}
+        {/* Chat & send */}
         <div className="w-full max-w-md mt-auto">
           <div className="flex space-x-2">
             <input
@@ -218,16 +246,29 @@ export default function Home() {
             />
             <button
               onClick={handleSend}
-              className="px-4 py-3 rounded-full bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] text-white font-medium"
+              disabled={isLoading}
+              className="px-4 py-3 rounded-full bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] text-white font-medium disabled:opacity-50"
             >
               Enviar
             </button>
           </div>
         </div>
 
-        {/* Recomendação exibida */}
-        {suggestion && (
-          <div className="w-full max-w-md mt-6 space-y-4">
+        {/* “Ver recomendação” */}
+        {suggestion && !isLoading && (
+          <div className="w-full max-w-md mt-6 flex justify-center">
+            <button
+              onClick={() => setShowRec((show) => !show)}
+              className="px-6 py-3 rounded-full bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] text-white font-medium"
+            >
+              {showRec ? "Ocultar recomendação" : "Ver recomendação"}
+            </button>
+          </div>
+        )}
+
+        {/* Recommendation */}
+        {showRec && suggestion && (
+          <div className="w-full max-w-md mt-4 space-y-4 text-center">
             <h2 className="text-lg font-semibold">Recomendação:</h2>
             <p className="text-gray-700">{suggestion.recommendation}</p>
           </div>
