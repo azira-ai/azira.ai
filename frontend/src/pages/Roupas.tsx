@@ -168,10 +168,10 @@ export default function Roupas() {
 
       <BottomNav />
 
-      <style jsx global>{`
+      {/* Global keyframes & class styles */}
+      <style>{`
         @keyframes gradient-pan {
-          0%,
-          100% {
+          0%, 100% {
             background-position: 0% 50%;
           }
           50% {
