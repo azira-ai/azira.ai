@@ -3,8 +3,12 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 import uuid
 from datetime import datetime
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
+
+feedbacks = relationship("OutfitFeedback", back_populates="outfit")
+analytics = relationship("OutfitAnalytics", back_populates="outfit")
 
 class Outfit(Base):
     __tablename__ = "outfits"

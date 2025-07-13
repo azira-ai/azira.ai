@@ -8,7 +8,7 @@ import RoupasNovo from "@/pages/RoupasNovo";
 import RoupaItem from "@/pages/RoupaItem";
 import Outfits from "@/pages/Outfits";
 import Marketplace from "@/pages/Marketplace";
-import Profile from "@/pages/Profile"; // página mockada
+import Profile from "@/pages/Profile";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Rota privada genérica
@@ -22,31 +22,68 @@ export function AppRoutes() {
     <BrowserRouter>
       <Routes>
         {/* ---------- PÚBLICAS ---------- */}
-        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
 
-        {/* ---------- ARMÁRIO ---------- */}
-        <Route path="/roupas" element={<Roupas />} />
-        <Route path="/roupas/novo" element={<RoupasNovo />} />
-        <Route path="/roupas/:id" element={<RoupaItem />} />
-
-        {/* ---------- MARKETPLACE ---------- */}
-        <Route path="/marketplace" element={<Marketplace />} />
-
-        {/* ---------- OUTFITS ---------- */}
-        <Route path="/outfits" element={<Outfits />} />
-
-        {/* ---------- PROFILE MOCK ---------- */}
+        {/* ---------- PRIVADAS ---------- */}
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/roupas"
+          element={
+            <PrivateRoute>
+              <Roupas />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/roupas/novo"
+          element={
+            <PrivateRoute>
+              <RoupasNovo />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/roupas/:id"
+          element={
+            <PrivateRoute>
+              <RoupaItem />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/marketplace"
+          element={
+            <PrivateRoute>
+              <Marketplace />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/outfits"
+          element={
+            <PrivateRoute>
+              <Outfits />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/profile"
           element={
-            // troque para <PrivateRoute> se for tornar protegida
-            <Profile />
+            <PrivateRoute>
+              <Profile />
+            </PrivateRoute>
           }
         />
 
         {/* ---------- NOT FOUND ---------- */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

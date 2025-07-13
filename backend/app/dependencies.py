@@ -19,6 +19,21 @@ async def get_db():
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 security = HTTPBearer()
 
+def get_current_user_full(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        response = supabase.auth.get_user(token)
+        if not response.user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        return {
+            "id": response.user.id,
+            "email": response.user.email,
+            "metadata": response.user.user_metadata
+        }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Auth error: {str(e)}")
+
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     try:

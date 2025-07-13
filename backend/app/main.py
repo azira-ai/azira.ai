@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import items, outfits, upload_router
+from app.routers import items, outfits, upload_router, user
 from app.database.database import engine
 from app.models import item, outfit
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +26,7 @@ app.add_middleware(
 # Include routers
 app.include_router(items.router, prefix="/items", tags=["items"])
 app.include_router(outfits.router, prefix="/outfits", tags=["outfits"])
+app.include_router(user.router, prefix="/user", tags=["user"])
 
 
 # Create database tables

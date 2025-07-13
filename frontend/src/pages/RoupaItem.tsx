@@ -1,267 +1,210 @@
 // src/pages/RoupaItem.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
-import type { Category } from "@/pages/Roupas";
+import api from "@/lib/api";
 import { Pencil, Trash2, X } from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const placeholder = "https://cdn-icons-png.flaticon.com/512/892/892458.png";
+export type Category = "all" | "tops" | "bottoms" | "shoes";
 
-interface ClothingExt {
+interface Item {
   id: string;
   name: string;
   category: Category;
-  image_url?: string;
-  clothe_type?: string;
+  type?: string;
   color?: string;
   style?: string;
   characteristics?: string[];
+  img_url?: string;
 }
-
-// MOCK aqui localmente, em vez de importar de Roupas.tsx
-const MOCK_CLOTHES: ClothingExt[] = [
-  { id: "1", name: "Camiseta Branca", category: "tops" },
-  { id: "2", name: "Jaqueta Jeans", category: "tops" },
-  { id: "3", name: "Vestido Floral", category: "tops" },
-  { id: "4", name: "Calça Preta", category: "bottoms" },
-  { id: "5", name: "Saia Midi", category: "bottoms" },
-  { id: "6", name: "Tênis Branco", category: "shoes" },
-];
-
-/* utilitários de estilos */
-const pill =
-  "px-2 py-0.5 text-[10px] rounded-full border border-gray-300 bg-gray-50 mr-1 mb-1";
-const gBtn =
-  "flex items-center justify-center gap-1.5 py-3 text-sm font-medium w-full rounded-full bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] text-white animate-gradient-pan";
-const sBtn =
-  "flex items-center justify-center gap-1.5 py-3 text-sm font-medium w-full rounded-full border";
 
 export default function RoupaItem() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const original = MOCK_CLOTHES.find((c) => c.id === id);
-  const [item, setItem] = useState<ClothingExt>(
-    original ?? { id: "", name: "", category: "tops" }
-  );
+  const [item, setItem] = useState<Item | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [edit, setEdit] = useState(false);
+  const [form, setForm] = useState<Partial<Item>>({});
 
-  if (!original) {
+  useEffect(() => {
+    if (!id) return;
+    api
+      .get<Item>(`/items/${id}`)
+      .then((res) => {
+        setItem(res.data);
+        setForm(res.data);
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar peça:", err);
+        setError("Peça não encontrada.");
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const remove = async () => {
+    if (!id) return;
+    try {
+      await api.delete(`/items/${id}`);
+      toast.success("Peça excluída com sucesso!");
+      navigate("/roupas");
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao excluir peça.");
+    }
+  };
+
+  const save = async () => {
+    if (!id) return;
+    try {
+      await api.patch(`/items/${id}`, form);
+      toast.success("Peça atualizada com sucesso!");
+      setEdit(false);
+      setLoading(true);
+      const res = await api.get<Item>(`/items/${id}`);
+      setItem(res.data);
+      setForm(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao salvar alterações.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-gray-500">Carregando peça…</p>
+      </div>
+    );
+
+  if (error || !item)
     return (
       <div className="min-h-screen flex flex-col bg-white">
         <Header />
         <main className="flex-1 pt-16 flex items-center justify-center text-gray-500">
-          Peça não encontrada.
+          {error}
         </main>
         <BottomNav />
+        <ToastContainer position="top-right" autoClose={3000} />
       </div>
     );
-  }
-
-  /* ações */
-  const save = () => {
-    Object.assign(original, item);
-    setEdit(false);
-  };
-  const cancel = () => {
-    setItem({ ...original });
-    setEdit(false);
-  };
-  const remove = () => {
-    const idx = MOCK_CLOTHES.findIndex((c) => c.id === original.id);
-    if (idx > -1) MOCK_CLOTHES.splice(idx, 1);
-    navigate("/roupas");
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
       <Header />
-
-      {/* considera header (64px) e bottom-nav (56px) */}
-      <main className="mt-[64px] mb-[56px] px-4 h-[calc(100svh-120px)] flex flex-col justify-between">
-        {/* imagem no topo, sem borda */}
-        <div className="flex justify-center pt-4">
-          <img
-            src={item.image_url || placeholder}
-            onError={(e) => {
-              e.currentTarget.src = placeholder;
-            }}
-            alt={item.name}
-            className="w-32 h-32 object-contain drop-shadow-sm"
-          />
-        </div>
-
-        {/* grid 3×3 de informações */}
-        <div className="mt-4 grid grid-cols-3 gap-x-4 gap-y-3 text-[15px] flex-1 overflow-y-auto">
-          <Cell
-            label="Nome"
-            value={item.name}
-            edit={edit}
-            onChange={(v) => setItem({ ...item, name: v })}
-          />
-          <Cell
-            label="Categoria"
-            value={item.category}
-            edit={edit}
-            select
-            options={[
-              { v: "tops", label: "Tops" },
-              { v: "bottoms", label: "Bottoms" },
-              { v: "shoes", label: "Shoes" },
-            ]}
-            onChange={(v) => setItem({ ...item, category: v as Category })}
-          />
-          <Cell
-            label="Tipo"
-            value={item.clothe_type || ""}
-            edit={edit}
-            onChange={(v) => setItem({ ...item, clothe_type: v })}
-          />
-          <Cell
-            label="Cor"
-            value={item.color || ""}
-            edit={edit}
-            onChange={(v) => setItem({ ...item, color: v })}
-          />
-          <Cell
-            label="Estilo"
-            value={item.style || ""}
-            edit={edit}
-            onChange={(v) => setItem({ ...item, style: v })}
-          />
-          {/* vazio para completar */}
-          <div />
-
-          {/* características linha inteira */}
-          <div className="col-span-3">
-            <p className="text-[11px] text-gray-500 mb-0.5">Características</p>
-            {edit ? (
-              <textarea
-                rows={2}
-                className="w-full border border-gray-300 rounded-md px-2 py-1 text-[15px]"
-                placeholder="separar por vírgula"
-                value={(item.characteristics ?? []).join(", ")}
-                onChange={(e) =>
-                  setItem({
-                    ...item,
-                    characteristics: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  })
-                }
-              />
-            ) : (item.characteristics ?? []).length ? (
-              <div className="flex flex-wrap">
-                {item.characteristics!.map((c) => (
-                  <span key={c} className={pill}>
-                    {c}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-[15px]">—</p>
-            )}
-          </div>
-        </div>
-
-        {/* botões fixos em base */}
-        <div className="grid grid-cols-2 gap-3 pt-4">
-          {edit ? (
-            <>
-              <button onClick={save} className={gBtn}>
-                <Pencil className="w-4 h-4" />
+      <main className="mt-[64px] mb-[56px] pb-[56px] px-4 flex-1 overflow-y-auto">
+        <ToastContainer position="top-right" autoClose={3000} />
+        <div className="flex justify-between items-center mb-4">
+          <button onClick={() => navigate(-1)} className="p-2">
+            <X className="w-6 h-6 text-gray-500" />
+          </button>
+          {!edit ? (
+            <div className="flex gap-2">
+              <button onClick={() => setEdit(true)} className="p-2">
+                <Pencil className="w-6 h-6 text-purple-600" />
+              </button>
+              <button onClick={remove} className="p-2">
+                <Trash2 className="w-6 h-6 text-red-500" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={save}
+                className="px-4 py-2 bg-purple-600 text-white rounded-full"
+              >
                 Salvar
               </button>
               <button
-                onClick={cancel}
-                className={`${sBtn} border-gray-300 text-gray-600`}
+                onClick={() => {
+                  setEdit(false);
+                  setForm(item);
+                }}
+                className="px-4 py-2 border rounded-full"
               >
-                <X className="w-4 h-4" />
                 Cancelar
               </button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => setEdit(true)} className={gBtn}>
-                <Pencil className="w-4 h-4" />
-                Editar
-              </button>
-              <button
-                onClick={remove}
-                className={`${sBtn} border-red-400 text-red-500`}
-              >
-                <Trash2 className="w-4 h-4" />
-                Excluir
-              </button>
-            </>
+            </div>
           )}
         </div>
-      </main>
 
-      <BottomNav />
-
-      <style jsx global>{`
-        @keyframes gradient-pan {
-          0%,
-          100% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-        }
-        .animate-gradient-pan {
-          background-size: 200% 200%;
-          animation: gradient-pan 4s linear infinite;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function Cell({
-  label,
-  value,
-  edit,
-  onChange,
-  select = false,
-  options = [],
-}: {
-  label: string;
-  value: string;
-  edit: boolean;
-  onChange: (v: string) => void;
-  select?: boolean;
-  options?: { v: string; label: string }[];
-}) {
-  return (
-    <div>
-      <p className="text-[11px] text-gray-500 mb-0.5">{label}</p>
-      {edit ? (
-        select ? (
-          <select
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-2 py-1 text-[15px]"
-          >
-            {options.map((o) => (
-              <option key={o.v} value={o.v}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <input
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-2 py-1 text-[15px]"
+        <div className="flex flex-col items-center mb-6">
+          <img
+            src={item.img_url}
+            alt={item.name}
+            className="w-40 h-40 object-contain shadow-md rounded-lg"
           />
-        )
-      ) : (
-        <p className="truncate">{value || "—"}</p>
-      )}
+        </div>
+
+        <div className="space-y-6">
+          {(
+            [
+              { label: "Nome", key: "name" },
+              { label: "Categoria", key: "category" },
+              { label: "Tipo", key: "type" },
+              { label: "Cor", key: "color" },
+              { label: "Estilo", key: "style" },
+            ] as const
+          ).map(({ label, key }) => (
+            <div key={key} className="flex flex-col">
+              <span className="text-xs text-gray-500 mb-1 uppercase">
+                {label}
+              </span>
+              {!edit ? (
+                <span className="text-base font-medium">
+                  {(item as any)[key] || "—"}
+                </span>
+              ) : (
+                <input
+                  value={(form as any)[key] || ""}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                  placeholder={(item as any)[key] || ""}
+                  className="w-full px-3 py-2 bg-white text-gray-900 placeholder-gray-500 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
+              )}
+            </div>
+          ))}
+
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 mb-1 uppercase">
+              Características
+            </span>
+            {!edit ? (
+              <div className="flex flex-wrap gap-2">
+                {item.characteristics?.map((c) => (
+                  <span
+                    key={c}
+                    className="px-3 py-1 bg-gray-100 rounded-full text-sm"
+                  >
+                    {c}
+                  </span>
+                )) || <span className="text-gray-400">—</span>}
+              </div>
+            ) : (
+              <input
+                value={(form.characteristics || []).join(", ")}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    characteristics: e.target.value
+                      .split(",")
+                      .map((s) => s.trim()),
+                  })
+                }
+                placeholder="Separe por vírgula"
+                className="w-full px-3 py-2 bg-white text-gray-900 placeholder-gray-500 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+            )}
+          </div>
+        </div>
+      </main>
+      <BottomNav />
     </div>
   );
 }

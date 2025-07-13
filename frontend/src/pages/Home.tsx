@@ -1,56 +1,86 @@
 // src/pages/Home.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
+import api from "@/lib/api";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-interface Item {
+interface ClothingItem {
+  id: string;
+  category: string;
+  type?: string;
+  img_url?: string;
+}
+interface CarouselItem {
   id: string;
   image_url: string;
 }
+interface OutfitResponse {
+  outfit: {
+    id: string;
+    items: string[];
+    created_at: string;
+  };
+  recommendation: string;
+}
 
-// Presets de recomendação
+// Presets
 const presets = [
   { label: "Look Profissional", type: "professional" },
   { label: "Look Casual", type: "casual" },
   { label: "Look Festa", type: "party" },
 ];
 
-// Três itens fixos por carrossel (sempre mostra 3, foco no do meio)
-const TOPS: Item[] = [
-  { id: "t1", image_url: "https://i.ibb.co/N1g26P0/jacket-denim.png" },
-  { id: "t2", image_url: "https://i.ibb.co/7jHn4qW/hoodie-white.png" },
-  { id: "t3", image_url: "https://i.ibb.co/zH42SgB/tshirt-black.png" },
-];
-const BOTTOMS: Item[] = [
-  { id: "b1", image_url: "https://i.ibb.co/KzWdFm8/pants-cargo.png" },
-  { id: "b2", image_url: "https://i.ibb.co/Vvz1f7p/jeans-black.png" },
-  { id: "b3", image_url: "https://i.ibb.co/bFzP23R/shorts-grey.png" },
-];
-const SHOES: Item[] = [
-  { id: "s1", image_url: "https://i.ibb.co/bzkYJjZ/sneakers-red.png" },
-  { id: "s2", image_url: "https://i.ibb.co/dG6p5B1/boots-black.png" },
-  { id: "s3", image_url: "https://i.ibb.co/W2gD2Sk/sneakers-white.png" },
-];
+// Carrossel com item central maior e laterais borradas
+function ClothingCarousel({
+  items,
+  running,
+  onIndexChange,
+}: {
+  items: CarouselItem[];
+  running: boolean;
+  onIndexChange: (centerId: string | null) => void;
+}) {
+  const [index, setIndex] = useState(0);
+  const len = items.length;
 
-// Carousel estático: sempre mostra 3 itens, foco no do meio
-function ClothingCarousel({ items }: { items: Item[] }) {
-  const [prev, curr, next] = items;
+  useEffect(() => {
+    if (!running || len < 2) return;
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % len);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [running, len]);
+
+  useEffect(() => {
+    onIndexChange(items[index]?.id ?? null);
+  }, [index]);
+
+  if (len === 0) return null;
+  const prev = items[(index + len - 1) % len];
+  const curr = items[index];
+  const next = items[(index + 1) % len];
+  const display = [prev, curr, next];
+
   return (
     <div className="w-full flex justify-center items-center space-x-4 mb-6">
-      {[prev, curr, next].map((item, idx) => {
+      {display.map((item, idx) => {
         const isCenter = idx === 1;
         return (
           <div
-            key={item.id}
-            className={`transition-transform ${
-              isCenter ? "scale-110 opacity-100" : "scale-90 opacity-50"
+            key={item.id + idx}
+            className={`transition-transform duration-500 ${
+              isCenter
+                ? "scale-110 opacity-100"
+                : "scale-90 opacity-60 filter blur-sm"
             }`}
           >
             <img
               src={item.image_url}
               alt=""
               className={`object-contain rounded-lg ${
-                isCenter ? "w-24 h-24" : "w-16 h-16"
+                isCenter ? "w-28 h-28" : "w-20 h-20"
               }`}
             />
           </div>
@@ -61,26 +91,86 @@ function ClothingCarousel({ items }: { items: Item[] }) {
 }
 
 export default function Home() {
+  const [clothes, setClothes] = useState<ClothingItem[]>([]);
   const [chat, setChat] = useState("");
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [running, setRunning] = useState(true);
+  const [suggestion, setSuggestion] = useState<OutfitResponse | null>(null);
+  const [topsId, setTopsId] = useState<string | null>(null);
+  const [bottomsId, setBottomsId] = useState<string | null>(null);
+  const [shoesId, setShoesId] = useState<string | null>(null);
 
-  const handleSend = () => {
-    const presetText = selectedPreset
-      ? `Look: ${selectedPreset}`
-      : "Sem preset";
-    alert(`${presetText}\nDescrição: ${chat}`);
+  useEffect(() => {
+    api
+      .get<ClothingItem[]>("/items")
+      .then((res) => setClothes(res.data))
+      .catch((err) => console.error("Erro ao buscar itens:", err));
+  }, []);
+
+  function pickRandom(list: CarouselItem[]): CarouselItem[] {
+    if (list.length <= 3) return list;
+    return list.sort(() => Math.random() - 0.5).slice(0, 3);
+  }
+
+  const topsList: CarouselItem[] = pickRandom(
+    clothes
+      .filter((c) => c.category?.toLowerCase().includes("top"))
+      .map((c) => ({ id: c.id, image_url: c.img_url || "" }))
+  );
+  const bottomsList: CarouselItem[] = pickRandom(
+    clothes
+      .filter((c) => c.category?.toLowerCase().includes("bottom"))
+      .map((c) => ({ id: c.id, image_url: c.img_url || "" }))
+  );
+  const shoesList: CarouselItem[] = pickRandom(
+    clothes
+      .filter((c) => c.category?.toLowerCase().includes("shoe"))
+      .map((c) => ({ id: c.id, image_url: c.img_url || "" }))
+  );
+
+  const handleSend = async () => {
+    if (!chat.trim()) {
+      toast.error("Descreva onde você vai antes de enviar.");
+      return;
+    }
+
+    const selectedItems = [topsId, bottomsId, shoesId].filter(Boolean);
+
+    if (selectedItems.length < 3) {
+      toast.error("Selecione ao menos uma peça de cada categoria.");
+      return;
+    }
+
+    setRunning(false);
+    try {
+      const payload = {
+        event_raw: `${
+          selectedPreset ? `Look: ${selectedPreset}\n` : ""
+        }${chat}`,
+        event_json: { preset: selectedPreset, description: chat },
+        items: selectedItems,
+      };
+
+      const res = await api.post<OutfitResponse>("/outfits/", payload);
+      setSuggestion(res.data);
+      toast.success("Look gerado com sucesso!");
+    } catch (err: any) {
+      console.error("Erro ao gerar outfit:", err.response?.data || err);
+      const detail =
+        err.response?.data?.detail?.[0]?.msg || "Erro desconhecido";
+      toast.error(`Falha ao gerar look: ${detail}`);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900 relative">
       <Header />
 
-      <main className="flex-1 pt-20 pb-24 px-4 flex flex-col items-center">
-        {/* Presets de look (com scroll mas sem barra visível) */}
-        <div
-          className="w-full overflow-x-auto hide-scrollbar flex space-x-4 mb-6"
-          style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}
-        >
+      <main className="flex-1 pt-20 pb-24 px-4 flex flex-col items-center overflow-hidden">
+        <ToastContainer position="top-right" autoClose={3000} />
+
+        {/* Presets */}
+        <div className="w-full overflow-x-auto hide-scrollbar flex space-x-4 mb-6">
           {presets.map((p) => {
             const isActive = p.type === selectedPreset;
             return (
@@ -99,39 +189,52 @@ export default function Home() {
           })}
         </div>
 
-        {/* Carrosséis de sugestões */}
-        <ClothingCarousel items={TOPS} />
-        <ClothingCarousel items={BOTTOMS} />
-        <ClothingCarousel items={SHOES} />
-      </main>
+        {/* Carrosséis */}
+        <ClothingCarousel
+          items={topsList}
+          running={running}
+          onIndexChange={setTopsId}
+        />
+        <ClothingCarousel
+          items={bottomsList}
+          running={running}
+          onIndexChange={setBottomsId}
+        />
+        <ClothingCarousel
+          items={shoesList}
+          running={running}
+          onIndexChange={setShoesId}
+        />
 
-      {/* Chat inferior fixo */}
-      <div className="fixed bottom-16 left-0 w-full px-4 bg-white z-20">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={chat}
-            onChange={(e) => setChat(e.target.value)}
-            placeholder="Descreva onde você vai e Azira criará o look"
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none text-gray-900 bg-white"
-          />
-          <button
-            onClick={handleSend}
-            className="px-4 py-3 rounded-full bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] text-white font-medium"
-          >
-            Enviar
-          </button>
+        {/* Chat e botão */}
+        <div className="w-full max-w-md mt-auto">
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={chat}
+              onChange={(e) => setChat(e.target.value)}
+              placeholder="Descreva onde você vai e Azira criará o look"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none text-gray-900 bg-white"
+            />
+            <button
+              onClick={handleSend}
+              className="px-4 py-3 rounded-full bg-gradient-to-r from-[#A02CFF] via-[#FF2DAF] to-[#FF6D00] text-white font-medium"
+            >
+              Enviar
+            </button>
+          </div>
         </div>
-      </div>
+
+        {/* Recomendação exibida */}
+        {suggestion && (
+          <div className="w-full max-w-md mt-6 space-y-4">
+            <h2 className="text-lg font-semibold">Recomendação:</h2>
+            <p className="text-gray-700">{suggestion.recommendation}</p>
+          </div>
+        )}
+      </main>
 
       <BottomNav />
     </div>
   );
 }
-
-// No seu CSS global (index.css ou tailwind.css):
-// .hide-scrollbar::-webkit-scrollbar { display: none; }
-// .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-// Agora o scroll funciona mas não aparece a barra visual. (index.css ou tailwind.css):
-// .scrollbar-hide::-webkit-scrollbar { display: none; }
-// .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
