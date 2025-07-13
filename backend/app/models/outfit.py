@@ -19,3 +19,12 @@ class Outfit(Base):
     event_json = Column(JSONB)
     items = Column(ARRAY(UUID(as_uuid=True)), nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.utcnow)
+    
+class CustomOutfit(Base):
+    __tablename__ = "custom_outfits"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    items = Column(ARRAY(UUID(as_uuid=True)), nullable=False)
+    generated_by = Column(Text, nullable=True)  # Optional field to track generation method
+    created_at = Column(TIMESTAMP(timezone=True), default=datetime.utcnow)

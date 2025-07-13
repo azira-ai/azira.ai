@@ -14,37 +14,11 @@ from app.schemas.outfit import OutfitCreate
 from app.config import settings
 from app.models.item import Item 
 from sqlalchemy.ext.asyncio import AsyncSession
+from .helper import GeminiService  # você pode mover Gemini para um helper geral
 
 
-class GeminiService:
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
-        self.api_key = api_key
-        self.url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-    async def send_prompt(self, prompt: str, max_retries: int = 3) -> str:
-        """Envia prompt para o Gemini com retry automático"""
-        for attempt in range(max_retries):
-            try:
-                async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
-                    response = await client.post(
-                        self.url,
-                        headers={"Content-Type": "application/json"},
-                        params={"key": self.api_key},
-                        json={"contents": [{"parts": [{"text": prompt}]}]}
-                    )
-                    response.raise_for_status()
-                    result = response.json()
-                    parts = result.get("candidates", [])[0].get("content", {}).get("parts", [])
-                    if parts and isinstance(parts[0], dict) and "text" in parts[0]:
-                        return parts[0]["text"]
-            except Exception as e:
-                logging.error(f"[GeminiService] Tentativa {attempt + 1} falhou: {e}")
-                if attempt == max_retries - 1:
-                    raise
-        return ""
-
-
-class RecommendationService:
+class HybridRecommendationService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.llm = GeminiService(settings.GEMINI_API_KEY)
@@ -52,53 +26,44 @@ class RecommendationService:
         self.trend_styles_2025 = ["oversized controlled", "vintage modern", "colorful minimalism", "texture mixing"]
 
     async def generate_outfit(self, user_id: UUID, event_raw: str, event_json: dict, gender: str) -> Dict:
-        """Gera outfit completo com análise contextual"""
         try:
-            # 1. Buscar itens do usuário
             result = await self.db.execute(select(Item).filter_by(user_id=user_id))
-            items = result.scalars().all()
-            
-            if not items:
-                return {"error": "Nenhum item encontrado no guarda-roupa"}
+            user_items = result.scalars().all()
 
-            # 2. Analisar contexto do evento
+            # Buscar itens à venda
+            result = await self.db.execute(select(Item).where(Item.for_sale == True))
+            for_sale_items = result.scalars().all()
+
+            all_items = user_items + for_sale_items
+
+            if not all_items:
+                return {"error": "Nenhum item encontrado no guarda-roupa ou à venda"}
+
             event_context = await self._analyze_event_context(event_raw, event_json)
-            
-            # 3. Buscar preferências do usuário
             user_preferences = await self._get_user_preferences(user_id)
-            
-            # 4. Preparar descrições dos itens
-            item_descriptions = self._prepare_item_descriptions(items)
-            
-            # 5. Pontuar itens baseado no evento
+            item_descriptions = self._prepare_item_descriptions(all_items)
             scored_items = await self._score_items_for_event(item_descriptions, event_context, gender)
-            
-            # 6. Gerar outfit com múltiplas tentativas
+
             outfit_result = await self._generate_outfit_with_retries(
                 event_raw, event_context, scored_items, user_preferences, gender
             )
-            
+
             if not outfit_result.get("outfit"):
                 if outfit_result.get("error"):
                     return outfit_result
                 return {"error": "Não foi possível gerar um outfit adequado"}
-            
-            # 7. Validar combinação
+
             validation_result = await self._validate_outfit_combination(
                 outfit_result["outfit"], event_context
             )
-            
-            # 8. Buscar itens completos do banco
+
             outfit_items_full = await self._get_outfit_items_full(outfit_result["outfit"])
-            
-            # 9. Gerar análise final
             final_analysis = await self._analyze_final_outfit(
                 event_raw, event_json, outfit_items_full, validation_result, gender
             )
-            
-            # 10. Salvar no banco
+
             db_outfit = await self._save_outfit(user_id, event_raw, event_json, outfit_result["outfit"])
-            
+
             return {
                 "outfit": db_outfit,
                 "items": outfit_items_full,
@@ -107,14 +72,14 @@ class RecommendationService:
                 "event_context": event_context,
                 "validation": validation_result
             }
-            
+
         except Exception as e:
             logging.error(f"Erro na geração do outfit: {e}")
             return {"error": "Erro interno na geração do outfit"}
 
     async def _analyze_event_context(self, event_raw: str, event_json: dict) -> Dict:
         """Analisa o contexto do evento para melhor recomendação"""
-        prompt = f"""
+        prompt = f"""fin
         Analise este evento e extraia informações relevantes para escolha de roupa:
         
         Evento: {event_raw}
@@ -246,7 +211,7 @@ class RecommendationService:
                 "characteristics": item.characteristics,
                 "img_url": item.img_url,
                 "for_sale": item.for_sale,
-                "price": item.price,
+                "price": float(item.price) if item.price is not None else None,
             }
             for item in items
         ]
@@ -377,8 +342,7 @@ class RecommendationService:
         
         return []
 
-    def _generate_fallback_outfit(self, categories_available: Dict) -> Dict:
-        """Gera outfit de fallback quando IA falha"""
+    async def _generate_fallback_outfit(self, categories_available: Dict) -> Dict:
         try:
             outfit = []
             missing = []
@@ -389,26 +353,24 @@ class RecommendationService:
                 else:
                     missing.append(category)
 
-            # Se todos os itens estão presentes no guarda-roupa
             if len(outfit) == 3:
                 return {"outfit": outfit, "strategy": "fallback"}
 
-            # Se faltou item, tentar buscar no banco por peças à venda
             logging.info(f"Buscando peças à venda para categorias faltantes: {missing}")
-            extra_items = self._find_items_for_sale(missing)
+            extra_items = await self._find_items_for_sale(missing)
 
             if extra_items:
                 outfit += extra_items
                 if len(outfit) == 3:
                     return {"outfit": outfit, "strategy": "fallback+store"}
 
-            # Ainda faltando peças, gerar descrição do problema
             explanation = self._explain_missing_items(missing)
             return {"error": "Não foi possível gerar outfit", "missing": missing, "explanation": explanation}
 
         except Exception as e:
             logging.error(f"Erro no fallback: {e}")
             return {"error": "Erro ao tentar gerar outfit de fallback"}
+
 
     async def _validate_outfit_combination(self, outfit_ids: List[str], event_context: Dict) -> Dict:
         """Valida se as peças combinam bem entre si"""
@@ -641,22 +603,21 @@ class RecommendationService:
         return []
     
 
-    def _find_items_for_sale(self, missing_categories: List[str]) -> List[str]:
+    async def _find_items_for_sale(self, missing_categories: List[str]) -> List[str]:
         """Busca itens à venda no banco para categorias faltantes"""
         try:
             found_items = []
-
             for category in missing_categories:
                 stmt = select(Item).where(Item.for_sale == True, Item.category == category).limit(1)
-                result = self.db.execute(stmt)
+                result = await self.db.execute(stmt)
                 item = result.scalar_one_or_none()
                 if item:
                     found_items.append(str(item.id))
-
             return found_items
         except Exception as e:
             logging.error(f"Erro ao buscar itens à venda: {e}")
             return []
+
 
 
     def _explain_missing_items(self, missing_categories: List[str]) -> str:
