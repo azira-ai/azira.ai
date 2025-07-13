@@ -12,7 +12,7 @@ export const api = axios.create({
   withCredentials: false,
 });
 
-// Adiciona JWT apenas se o backend estiver habilitado
+// Adiciona JWT se o backend estiver habilitado
 api.interceptors.request.use((config) => {
   if (BACKEND_ENABLED) {
     const token = localStorage.getItem("token");
@@ -23,3 +23,5 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+export default api;
