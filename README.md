@@ -3,7 +3,7 @@
 **Azira** é uma solução para te deixar mais estiloso. É um webapp especialista no seu guarda-roupa, que conta com uma IA estilista capaz de montar os melhores looks para as ocasiões do dia a dia, economizando tempo e dinheiro (já que você não precisará comprar novas peças) e potencializando sua autoestima.
 
 # Arquitetura
-![alt text](image.png)
+![alt text](/frontend//public/image.png)
 
 ## 🔗 Links
 
