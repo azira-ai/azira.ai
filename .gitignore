@@ -1,0 +1,48 @@
+# Git ignore para todo o monorepo (raiz)
+
+# node modules
+
+default
+node\_modules/
+
+# Build outputs
+
+dist/
+build/
+
+# Logs
+
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log\*
+yarn-error.log\*
+
+# Environment files
+
+.env
+.env.\*
+
+# System files
+
+.DS\_Store
+Thumbs.db
+
+# IDEs
+
+.vscode/
+.idea/
+
+# Frontend específico
+
+/frontend/node\_modules/
+/frontend/build/
+/frontend/dist/
+/frontend/.env
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.production.local
+
+# Outros
+
+coverage/
