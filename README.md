@@ -2,6 +2,9 @@
 
 **Azira** é uma solução para te deixar mais estiloso. É um webapp especialista no seu guarda-roupa, que conta com uma IA estilista capaz de montar os melhores looks para as ocasiões do dia a dia, economizando tempo e dinheiro (já que você não precisará comprar novas peças) e potencializando sua autoestima.
 
+# Arquitetura
+![alt text](image.png)
+
 ## 🔗 Links
 
 * **Pitch:** [Insira o link do pitch aqui](URL_DO_PITCH)
@@ -79,7 +82,6 @@
    ```dotenv
    SUPABASE_URL=
    SUPABASE_KEY=
-   # SUPABASE_DB_URL=  # caso use conexão direta via async pg
    SUPABASE_DB_URL=
    GEMINI_API_KEY=
    SUPABASE_STORAGE_BUCKET=
