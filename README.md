@@ -2,7 +2,7 @@
 
 # Azira
 
-**Azira** é uma solução para te deixar mais estiloso. É um webapp especialista no seu guarda-roupa, que conta com uma IA estilista capaz de montar os melhores looks para as ocasiões do dia a dia, economizando tempo e dinheiro (já que você não precisará comprar novas peças) e potencializando sua autoestima.
+**Azira** é o seu personal stylist na palma da mão. Nosso webapp entende profundamente o seu estilo e conhece cada peça do seu guarda-roupa. Com uma inteligência artificial especializada em moda, o Azira cria combinações incríveis e personalizadas para todas as ocasiões do seu dia a dia. Assim, você economiza tempo e dinheiro, aproveitando ao máximo o que já possui, enquanto potencializa sua autoestima e se sente sempre confiante com o que veste.
 
 # Arquitetura
 
@@ -49,13 +49,8 @@
 2. Crie um arquivo `.env` com as seguintes variáveis:
 
    ```dotenv
-   VITE_FIREBASE_API_KEY=
-   VITE_FIREBASE_AUTH_DOMAIN=
-   VITE_FIREBASE_PROJECT_ID=
-   VITE_FIREBASE_STORAGE_BUCKET=
-   VITE_FIREBASE_MESSAGING_SENDER_ID=
-   VITE_FIREBASE_APP_ID=
-   VITE_FIREBASE_MEASUREMENT_ID=
+   VITE_SUPABASE_URL=
+   VITE_SUPABASE_ANON_KEY=
    VITE_API_URL=
    ```
 
